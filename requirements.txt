@@ -1,0 +1,21 @@
+# Processamento e Análise de Dados
+pandas
+numpy
+scipy
+
+# Visualização de Dados
+matplotlib
+seaborn
+
+# Ingestão de Dados e Requisições HTTP
+requests
+python-dotenv
+
+# Conexão com Banco de Dados PostgreSQL
+sqlalchemy
+psycopg2-binary
+
+# Dashboard e Relatório
+plotly
+fpdf2
+kaleido
