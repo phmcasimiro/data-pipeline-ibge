@@ -1,4 +1,4 @@
-# Importação das bibliotecas necessárias:
+﻿# Importação das bibliotecas necessárias:
 import os
 import sys
 import requests
@@ -13,7 +13,7 @@ if hasattr(sys.stdout, 'reconfigure'):
 # Carrega as variáveis de ambiente do arquivo .env
 load_dotenv()
 
-# Configurações de Conexão com o PostgreSQL / PostGIS obtidas do .env
+# Configurações de Conexão com o PostgreSQL
 DB_HOST = os.getenv("DB_HOST", "localhost")
 DB_PORT = os.getenv("DB_PORT", "5433")
 DB_NAME = os.getenv("DB_NAME", "gisdb")
@@ -22,10 +22,7 @@ DB_USER = os.getenv("DB_USER", "postgres")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "")
 TABLE_NAME = "ibge_pib_municipios_raw"
 
-# URL da API de Agregados do IBGE para Municípios (N6[all])
-# Agregado 5938: PIB dos Municípios
-# Variável 37: Produto Interno Bruto a preços correntes (Mil Reais)
-# Períodos: 2015 a 2023
+# URL da API de Agregados do IBGE para Municípios do RJ (N6[N3[33]])
 api_ibge = "https://servicodados.ibge.gov.br/api/v3/agregados/5938/periodos/2015|2016|2017|2018|2019|2020|2021|2022|2023/variaveis/37?localidades=N6[N3[33]]"
 
 def get_db_engine():
@@ -33,28 +30,31 @@ def get_db_engine():
     connection_url = f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
     return create_engine(connection_url)
 
-def create_schema_if_not_exists(engine, schema_name):
-    """Cria o schema no PostgreSQL caso ele ainda não exista."""
-    with engine.connect() as conn:
-        conn.execute(text(f"CREATE SCHEMA IF NOT EXISTS {schema_name};"))
-        conn.commit()
+def apply_sql_definitions(engine):
+    """Aplica os scripts DDL de schema e views analíticas versionados na pasta sql/."""
+    scripts_sql = ["sql/01_schema.sql", "sql/02_views_analytics.sql"]
+    with engine.begin() as conn:
+        for script_path in scripts_sql:
+            if os.path.exists(script_path):
+                with open(script_path, "r", encoding="utf-8") as f:
+                    conteudo = f.read()
+                conn.execute(text(conteudo))
+    print("Definições DDL e Views analíticas (sql/) verificadas/aplicadas com sucesso.")
 
 def fetch_and_extract_pib_data():
     """Requisita os dados na API do IBGE e extrai em formato estruturado (Tidy/Long)."""
-    print(f"Fazendo requisição à API do IBGE para todos os municípios (2015-2023)...")
-    response = requests.get(api_ibge) # requests é uma biblioteca em python que faz requisições HTTP
-    response.raise_for_status() # raise_for_status() lança uma exceção para códigos de status HTTP de erro
-    data = response.json() # json() é um método que converte a resposta para um dicionário Python
+    print(f"Fazendo requisição à API do IBGE para todos os municípios do RJ (2015-2023)...")
+    response = requests.get(api_ibge)
+    response.raise_for_status()
+    data = response.json()
     
-    # Navega na hierarquia do JSON (Variável -> Resultados -> Séries) para obter a lista de localidades com seus respectivos valores do PIB
     series = data[0]['resultados'][0]['series']
-    rows = [] # rows é uma lista vazia que será preenchida com os dados da API do IBGE
+    rows = []
     
-    for item in series: # para cada item na lista de séries
+    for item in series:
         loc_id = item['localidade']['id']         # Código IBGE de 7 dígitos do Município
-        loc_nome_raw = item['localidade']['nome']   # Exemplo: "Alta Floresta D'Oeste (RO)"
+        loc_nome_raw = item['localidade']['nome']   # Ex: "Angra dos Reis (RJ)"
         
-        # Dicionário de fallback para mapear os 2 primeiros dígitos do código IBGE para a UF
         UF_MAP = {
             '11': 'RO', '12': 'AC', '13': 'AM', '14': 'RR', '15': 'PA', '16': 'AP', '17': 'TO',
             '21': 'MA', '22': 'PI', '23': 'CE', '24': 'RN', '25': 'PB', '26': 'PE', '27': 'AL',
@@ -62,7 +62,6 @@ def fetch_and_extract_pib_data():
             '42': 'SC', '43': 'RS', '50': 'MS', '51': 'MT', '52': 'GO', '53': 'DF'
         }
         
-        # Separa o nome do município e a sigla da UF (suporta hífen " - " e parênteses "(UF)")
         if " - " in loc_nome_raw:
             partes = loc_nome_raw.rsplit(" - ", 1)
             nome_municipio = partes[0].strip()
@@ -72,9 +71,8 @@ def fetch_and_extract_pib_data():
             uf = loc_nome_raw[loc_nome_raw.rfind("(")+1:-1].strip()
         else:
             nome_municipio = loc_nome_raw
-            uf = UF_MAP.get(loc_id[:2])
+            uf = UF_MAP.get(loc_id[:2], 'RJ')
             
-        # Itera sobre cada ano disponível no dicionário de série temporal
         for ano_str, valor_str in item['serie'].items():
             if valor_str is not None:
                 try:
@@ -105,17 +103,20 @@ def run_etl():
         # 2. Conexão ao Banco de Dados
         engine = get_db_engine()
         
-        # 3. Criação do Schema no PostgreSQL se não existir
-        create_schema_if_not_exists(engine, DB_SCHEMA)
-        print(f"Schema '{DB_SCHEMA}' verificado/criado com sucesso.")
+        # 3. Aplica DDL e Views a partir da pasta sql/
+        apply_sql_definitions(engine)
         
-        # 4. Carga dos dados no PostgreSQL
+        # 4. Carga dos dados no PostgreSQL via TRUNCATE + APPEND
+        # Isso preserva a tabela DDL, os tipos, a chave primária e as views dependentes
         print(f"Gravando dados na tabela '{DB_SCHEMA}.{TABLE_NAME}' no banco '{DB_NAME}' ({DB_HOST}:{DB_PORT})...")
+        with engine.begin() as conn:
+            conn.execute(text(f"TRUNCATE TABLE {DB_SCHEMA}.{TABLE_NAME};"))
+        
         df.to_sql(
             name=TABLE_NAME,
             con=engine,
             schema=DB_SCHEMA,
-            if_exists="replace",
+            if_exists="append",
             index=False
         )
         print(f"Sucesso! {len(df):,} registros inseridos na tabela '{DB_SCHEMA}.{TABLE_NAME}'.".replace(",", "."))
@@ -128,7 +129,7 @@ def run_etl():
 
     except Exception as e:
         print(f"\n[ERRO no ETL]: {e}")
+        raise e
 
 if __name__ == "__main__":
     run_etl()
-

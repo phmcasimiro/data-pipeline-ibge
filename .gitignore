@@ -11,3 +11,7 @@ __pycache__/
 
 # Variáveis de Ambiente
 .env
+# Arquivos temporarios e de teste
+*teste*
+*temp*
+*.tmp
