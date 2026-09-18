@@ -96,6 +96,7 @@ data-pipeline-ibge/
 ## 🚀 Como Executar Localmente (Guia Passo a Passo)
 
 ### Pré-requisitos
+
 - **Python 3.11+** (recomendado Python 3.12)
 - **PostgreSQL 14+** em execução local ou via container
 - **Git**
@@ -174,27 +175,35 @@ Esta seção foi desenhada para que **qualquer pessoa (mesmo sem experiência t�
 Siga os 4 passos de validação abaixo:
 
 ### Passo 1: Verificar se as ferramentas do Python estão instaladas
+
 Com o terminal aberto e o ambiente virtual ativado, cole e execute o comando abaixo:
+
 ```bash
 python -c "import pandas, numpy, scipy, plotly, fpdf, sqlalchemy, psycopg2; print('-> OK: Todas as bibliotecas Python estao instaladas e prontas!')"
 ```
+
 - **Resultado Esperado:** Mensagem `-> OK: Todas as bibliotecas Python estao instaladas e prontas!`.
 - **Se der erro:** Significa que faltou executar `pip install -r requirements.txt` ou o ambiente `venv` não está ativado.
 
 ---
 
 ### Passo 2: Verificar a conexão com o Banco de Dados e os Dados Salvos
+
 Para testar se o PostgreSQL está ligado e se os dados do IBGE foram gravados com sucesso (sem precisar instalar utilitários externos como `psql`), execute:
+
 ```bash
 python -c "import os; from dotenv import load_dotenv; from sqlalchemy import create_engine, text; load_dotenv(); e = create_engine(f'postgresql+psycopg2://{os.getenv(\"DB_USER\")}:{os.getenv(\"DB_PASSWORD\")}@{os.getenv(\"DB_HOST\")}:{os.getenv(\"DB_PORT\")}/{os.getenv(\"DB_NAME\")}'); c = e.connect(); r = c.execute(text('SELECT count(*) FROM geoanalytics.ibge_pib_municipios_raw')).scalar(); print(f'-> OK: Banco conectado! Total de registros gravados: {r}'); c.close()"
 ```
+
 - **Resultado Esperado:** Mensagem `-> OK: Banco conectado! Total de registros gravados: 828` (são 92 municípios fluminenses x 9 anos analisados).
 - **Se der erro:** Verifique se o serviço do PostgreSQL está iniciado e se a senha no arquivo `.env` está correta.
 
 ---
 
 ### Passo 3: Conferência Rápida dos Arquivos Gerados (Checklist Automático)
+
 Execute este comando para checar se todos os relatórios e arquivos de dados foram criados no disco:
+
 ```bash
 python -c "import os; arquivos = ['reports/dashboard_pib_rj.html', 'reports/relatorio_pib_rj.pdf', 'data/estatisticas_pib_municipios.csv']; faltam = [f for f in arquivos if not os.path.exists(f)]; print('-> OK: Todos os relatorios e dados foram gerados com sucesso!' if not faltam else f'-> Atencao: Arquivos ainda nao encontrados: {faltam}')"
 ```
@@ -202,6 +211,7 @@ python -c "import os; arquivos = ['reports/dashboard_pib_rj.html', 'reports/rela
 ---
 
 ### Passo 4: Inspeção Visual dos Resultados (Sem Terminal)
+
 Você pode abrir e conferir os produtos finais diretamente no seu computador:
 
 1. **Dashboard Interativo:** Vá até a pasta `reports/` e dê dois cliques no arquivo [`dashboard_pib_rj.html`](reports/dashboard_pib_rj.html). Ele abrirá automaticamente no seu navegador web com gráficos interativos em tela cheia, rankings e cards com indicadores (KPIs).
