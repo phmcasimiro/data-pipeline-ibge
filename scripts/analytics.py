@@ -6,7 +6,6 @@
 import os
 import sys
 import warnings
-import base64
 import pandas as pd
 import numpy as np
 import matplotlib
@@ -66,14 +65,6 @@ def calcular_gini(array):
     index = np.arange(1, array.shape[0] + 1)
     n = array.shape[0]
     return ((np.sum((2 * index - n - 1) * array)) / (n * np.sum(array)))
-
-# Função auxiliar para converter imagem em base64 (embedding no HTML)
-def img_para_base64(filepath):
-    """Converte um arquivo de imagem em string base64 para embedding no HTML."""
-    if os.path.exists(filepath):
-        with open(filepath, 'rb') as f:
-            return base64.b64encode(f.read()).decode('utf-8')
-    return None
 
 # Conectar ao banco de dados e carregar os dados via SQL
 connection_url = f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
@@ -529,33 +520,26 @@ def gerar_dashboard_html():
     os.makedirs(reports_dir, exist_ok=True)
     html_filepath = os.path.join(reports_dir, 'dashboard_pib_rj.html')
 
-    # Helper: converte imagem img/ para tag <img> base64 embutida
-    def img_tag(filename, width="100%", style=""):
-        b64 = img_para_base64(os.path.join('img', filename))
-        if b64:
-            return f'<img src="data:image/png;base64,{b64}" style="width:{width};{style}" />'
-        return f'<p style="color:#94a3b8">Imagem {filename} não encontrada.</p>'
-
     # ---- Gráficos Plotly interativos ----
 
     # Fig 1: Evolução temporal + variação anual
     fig1 = make_subplots(specs=[[{"secondary_y": True}]])
     fig1.add_trace(go.Bar(x=pib_anual['ano'], y=pib_anual['variacao_pct'],
-                          name="Variação Anual (%)", marker_color='#38bdf8', opacity=0.85),
+                          name="Variação Anual (%)", marker_color='#00A4EF', opacity=0.85),
                    secondary_y=True)
     fig1.add_trace(go.Scatter(x=pib_anual['ano'], y=pib_anual['pib_bilhoes'],
                               name="PIB Total (R$ Bi)", mode='lines+markers+text',
                               text=[f"R$ {v:.1f}B" for v in pib_anual['pib_bilhoes']],
                               textposition="top center",
-                              line=dict(color='#0284c7', width=4), marker=dict(size=10)),
+                              line=dict(color='#01579B', width=4), marker=dict(size=10)),
                    secondary_y=False)
     fig1.update_layout(title="<b>Evolução do PIB Total do Estado do Rio de Janeiro (2015-2023)</b>",
-                       paper_bgcolor='white', plot_bgcolor='#f8fafc',
-                       font=dict(family="Inter, sans-serif", color='#0f172a'),
+                       paper_bgcolor='white', plot_bgcolor='#F8F9FA', height=450,
+                       font=dict(family="'Avenir Next', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif", color='#323232'),
                        margin=dict(l=40, r=40, t=60, b=40),
                        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
-    fig1.update_xaxes(title_text="Ano", gridcolor='#e2e8f0', dtick=1)
-    fig1.update_yaxes(title_text="PIB Total (Bilhões R$)", secondary_y=False, gridcolor='#e2e8f0')
+    fig1.update_xaxes(title_text="Ano", gridcolor='#D0D1D3', dtick=1)
+    fig1.update_yaxes(title_text="PIB Total (Bilhões R$)", secondary_y=False, gridcolor='#D0D1D3')
     fig1.update_yaxes(title_text="Variação Anual (%)", secondary_y=True)
 
     # Fig 2: Top 10 por PIB Médio
@@ -566,14 +550,14 @@ def gerar_dashboard_html():
         text=[f"R$ {v/1e6:.2f} Bi" for v in top10_df['media']], textposition='outside'
     ))
     fig2.update_layout(title="<b>Top 10 Municípios por PIB Médio (2015-2023)</b>",
-                       paper_bgcolor='white', plot_bgcolor='#f8fafc',
-                       font=dict(family="Inter, sans-serif", color='#0f172a'),
+                       paper_bgcolor='white', plot_bgcolor='#F8F9FA', height=440,
+                       font=dict(family="'Avenir Next', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif", color='#323232'),
                        margin=dict(l=40, r=80, t=60, b=40))
-    fig2.update_xaxes(title_text="PIB Médio (Bilhões R$)", gridcolor='#e2e8f0')
+    fig2.update_xaxes(title_text="PIB Médio (Bilhões R$)", gridcolor='#D0D1D3')
 
     # Fig 3: Evolução Top 5 Municípios
     fig3 = go.Figure()
-    colors = ['#1e40af', '#0284c7', '#0d9488', '#16a34a', '#ca8a04']
+    colors = ['#01579B', '#00A4EF', '#0079C1', '#35AC46', '#E8A904']
     for idx, mun in enumerate(top5_municipios):
         mun_data = df[df['nome_municipio'] == mun].sort_values('ano')
         fig3.add_trace(go.Scatter(x=mun_data['ano'], y=mun_data['pib_mil_reais'] / 1e6,
@@ -581,12 +565,12 @@ def gerar_dashboard_html():
                                   line=dict(width=3, color=colors[idx % len(colors)]),
                                   marker=dict(size=8)))
     fig3.update_layout(title="<b>Evolução do PIB dos 5 Maiores Municípios (Bilhões R$)</b>",
-                       paper_bgcolor='white', plot_bgcolor='#f8fafc',
-                       font=dict(family="Inter, sans-serif", color='#0f172a'),
+                       paper_bgcolor='white', plot_bgcolor='#F8F9FA', height=440,
+                       font=dict(family="'Avenir Next', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif", color='#323232'),
                        margin=dict(l=40, r=40, t=60, b=40),
                        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
-    fig3.update_xaxes(title_text="Ano", gridcolor='#e2e8f0', dtick=1)
-    fig3.update_yaxes(title_text="PIB (Bilhões R$)", gridcolor='#e2e8f0')
+    fig3.update_xaxes(title_text="Ano", gridcolor='#D0D1D3', dtick=1)
+    fig3.update_yaxes(title_text="PIB (Bilhões R$)", gridcolor='#D0D1D3')
 
     # Fig 4: Curva de Lorenz
     pib_sorted_l = np.sort(pib_municipio.values)
@@ -595,18 +579,18 @@ def gerar_dashboard_html():
     x_lorenz = np.linspace(0, 1, len(pib_cum_l))
     fig4 = go.Figure()
     fig4.add_trace(go.Scatter(x=x_lorenz, y=x_lorenz, name='Igualdade Perfeita',
-                              line=dict(color='#94a3b8', dash='dash')))
+                              line=dict(color='#BBBCBE', dash='dash')))
     fig4.add_trace(go.Scatter(x=x_lorenz, y=pib_cum_l,
                               name=f'Curva de Lorenz (Gini={gini_coef:.3f})',
-                              fill='tonexty', fillcolor='rgba(2,132,199,0.15)',
-                              line=dict(color='#0284c7', width=3)))
+                              fill='tonexty', fillcolor='rgba(1,87,155,0.15)',
+                              line=dict(color='#01579B', width=3)))
     fig4.update_layout(title=f"<b>Concentração do PIB — Curva de Lorenz (Gini: {gini_coef:.3f})</b>",
-                       paper_bgcolor='white', plot_bgcolor='#f8fafc',
-                       font=dict(family="Inter, sans-serif", color='#0f172a'),
+                       paper_bgcolor='white', plot_bgcolor='#F8F9FA', height=440,
+                       font=dict(family="'Avenir Next', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif", color='#323232'),
                        margin=dict(l=40, r=40, t=60, b=40),
                        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
-    fig4.update_xaxes(title_text="Proporção Acumulada de Municípios", gridcolor='#e2e8f0')
-    fig4.update_yaxes(title_text="Proporção Acumulada do PIB", gridcolor='#e2e8f0')
+    fig4.update_xaxes(title_text="Proporção Acumulada de Municípios", gridcolor='#D0D1D3')
+    fig4.update_yaxes(title_text="Proporção Acumulada do PIB", gridcolor='#D0D1D3')
 
     # Fig 5: CAGR — Top 10 e Bottom 10
     top10_cagr = cagr_municipios.head(10).reset_index()
@@ -616,41 +600,74 @@ def gerar_dashboard_html():
     cagr_combined = pd.concat([top10_cagr, bottom10_cagr]).sort_values('cagr', ascending=True)
     fig5 = go.Figure(go.Bar(
         x=cagr_combined['cagr'], y=cagr_combined['municipio'], orientation='h',
-        marker=dict(color=['#dc2626' if v < 0 else '#0284c7' for v in cagr_combined['cagr']]),
+        marker=dict(color=['#D32F2F' if v < 0 else '#01579B' for v in cagr_combined['cagr']]),
         text=[f"{v:+.1f}%" for v in cagr_combined['cagr']], textposition='outside'
     ))
     fig5.update_layout(title="<b>CAGR 2015–2023 — Maiores e Menores Crescimentos</b>",
-                       paper_bgcolor='white', plot_bgcolor='#f8fafc',
-                       font=dict(family="Inter, sans-serif", color='#0f172a'),
+                       paper_bgcolor='white', plot_bgcolor='#F8F9FA', height=480,
+                       font=dict(family="'Avenir Next', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif", color='#323232'),
                        margin=dict(l=40, r=80, t=60, b=40))
-    fig5.update_xaxes(title_text="CAGR Anual (%)", gridcolor='#e2e8f0')
+    fig5.update_xaxes(title_text="CAGR Anual (%)", gridcolor='#D0D1D3')
 
-    # Fig 6: Tendências de crescimento (regressão linear)
-    tend_top10 = tendencias.nlargest(10, 'tendencia').sort_values('tendencia', ascending=True)
-    fig6 = go.Figure(go.Bar(
-        x=tend_top10['tendencia'] / 1e3, y=tend_top10['nome_municipio'], orientation='h',
-        marker=dict(color='#0d9488'),
-        text=[f"+R$ {v/1e3:,.0f} M/ano (R²={r:.2f})" for v, r in zip(tend_top10['tendencia'], tend_top10['r2'])],
-        textposition='outside'
-    ))
-    fig6.update_layout(title="<b>Top 10 — Tendência de Crescimento Anual por Regressão Linear (R$ Milhões/ano)</b>",
-                       paper_bgcolor='white', plot_bgcolor='#f8fafc',
-                       font=dict(family="Inter, sans-serif", color='#0f172a'),
-                       margin=dict(l=40, r=120, t=60, b=40))
-    fig6.update_xaxes(title_text="Crescimento (R$ Milhões/ano)", gridcolor='#e2e8f0')
+    # Fig 6: Distribuição do PIB (Histograma log + Boxplot por ano)
+    log_pib_mean = df_log['log_pib'].mean()
+    log_pib_median = df_log['log_pib'].median()
+    fig6 = make_subplots(rows=1, cols=2, subplot_titles=("Distribuição do PIB (Log10)", "Distribuição por Ano"))
+    fig6.add_trace(go.Histogram(x=df_log['log_pib'], marker_color='#00A4EF', opacity=0.85, name='Frequência'), row=1, col=1)
+    fig6.add_vline(x=log_pib_mean, line_dash='dash', line_color='#D32F2F',
+                   annotation_text=f"Média: {log_pib_mean:.2f}", annotation_position="top", row=1, col=1)
+    fig6.add_vline(x=log_pib_median, line_dash='dash', line_color='#35AC46',
+                   annotation_text=f"Mediana: {log_pib_median:.2f}", annotation_position="bottom", row=1, col=1)
+    fig6.add_trace(go.Box(x=df['ano'], y=df_log['log_pib'], marker_color='#01579B',
+                          name='PIB por Ano', showlegend=False), row=1, col=2)
+    fig6.update_layout(title="<b>Distribuição do PIB e Detecção de Outliers</b>",
+                       paper_bgcolor='white', plot_bgcolor='#F8F9FA', height=420,
+                       font=dict(family="'Avenir Next', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif", color='#323232'),
+                       margin=dict(l=40, r=40, t=80, b=40), showlegend=False)
+    fig6.update_xaxes(title_text="Log10(PIB em Mil R$)", gridcolor='#D0D1D3', row=1, col=1)
+    fig6.update_yaxes(title_text="Frequência", gridcolor='#D0D1D3', row=1, col=1)
+    fig6.update_xaxes(title_text="Ano", gridcolor='#D0D1D3', row=1, col=2)
+    fig6.update_yaxes(title_text="Log10(PIB em Mil R$)", gridcolor='#D0D1D3', row=1, col=2)
+
+    # Fig 7: Distribuição das Taxas de Crescimento (CAGR)
+    cagr_neg = cagr_municipios[cagr_municipios < 0]
+    cagr_pos = cagr_municipios[cagr_municipios >= 0]
+    fig7 = make_subplots(rows=1, cols=2, subplot_titles=("Distribuição do CAGR", "Boxplot do CAGR"))
+    fig7.add_trace(go.Histogram(x=cagr_neg, marker_color='#D32F2F', opacity=0.85, name='CAGR < 0'), row=1, col=1)
+    fig7.add_trace(go.Histogram(x=cagr_pos, marker_color='#01579B', opacity=0.85, name='CAGR ≥ 0'), row=1, col=1)
+    fig7.add_vline(x=0, line_dash='dash', line_color='#545454', row=1, col=1)
+    fig7.add_trace(go.Box(y=cagr_municipios, marker_color='#01579B', name='CAGR', showlegend=False), row=1, col=2)
+    fig7.add_hline(y=0, line_dash='dash', line_color='#545454', row=1, col=2)
+    fig7.update_layout(title="<b>Distribuição das Taxas de Crescimento (CAGR)</b>",
+                       paper_bgcolor='white', plot_bgcolor='#F8F9FA', height=420,
+                       font=dict(family="'Avenir Next', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif", color='#323232'),
+                       margin=dict(l=40, r=40, t=80, b=40), barmode='overlay',
+                       legend=dict(orientation="h", yanchor="bottom", y=1.1, xanchor="right", x=1))
+    fig7.update_xaxes(title_text="CAGR (%)", gridcolor='#D0D1D3', row=1, col=1)
+    fig7.update_yaxes(title_text="Número de Municípios", gridcolor='#D0D1D3', row=1, col=1)
+    fig7.update_yaxes(title_text="CAGR (%)", gridcolor='#D0D1D3', row=1, col=2)
 
     # ---- Dados calculados para KPIs ----
     pib_2023_val = pib_anual.iloc[-1]['pib_bilhoes']
 
+    # Correlações entre pares distintos de anos (triângulo superior da matriz)
+    corr_vals = correlacao_anos.values[np.triu_indices_from(correlacao_anos.values, 1)]
+
+    # Concentração no topo do ranking (para os textos analíticos)
+    pct_top10 = (pib_municipio.nlargest(10).sum() / pib_municipio.sum()) * 100
+    pct_rio = (pib_municipio.loc['Rio de Janeiro'] / pib_municipio.sum()) * 100
+
     # ---- Montar tabelas HTML ----
 
-    # Tabela 1: Estatísticas descritivas por município (todos os municípios)
-    def tabela_stats_municipios_html(n=None):
-        df_t = stats_municipios.sort_values('media', ascending=False)
-        if n:
-            df_t = df_t.head(n)
+    # Tabela mestra: consolida estatísticas descritivas, CAGR e tendência linear por município
+    def tabela_mestra_municipios_html():
+        df_t = (stats_municipios
+                .merge(tendencias[['nome_municipio', 'tendencia', 'r2']], on='nome_municipio', how='left')
+                .assign(cagr=lambda d: d['nome_municipio'].map(cagr_municipios))
+                .sort_values('media', ascending=False))
         rows = ""
         for _, r in df_t.iterrows():
+            cor_cagr = "#35AC46" if r['cagr'] >= 0 else "#D32F2F"
             rows += f"""
             <tr>
                 <td><b>{r['nome_municipio']}</b></td>
@@ -660,38 +677,22 @@ def gerar_dashboard_html():
                 <td>R$ {r['maximo']:,.0f}</td>
                 <td>R$ {r['desvio_padrao']:,.0f}</td>
                 <td>{r['cv']:.1f}%</td>
-                <td>{r['variacao_total']:.1f}%</td>
+                <td style="color:{cor_cagr};font-weight:600">{r['cagr']:.1f}%</td>
+                <td>R$ {r['tendencia']:,.0f}</td>
+                <td>{r['r2']:.2f}</td>
             </tr>"""
         return f"""
         <table>
             <thead><tr>
                 <th>Município</th><th>PIB Médio (Mil R$)</th><th>Mediana</th>
                 <th>Mínimo</th><th>Máximo</th><th>Desvio Padrão</th>
-                <th>CV (%)</th><th>Variação Total (%)</th>
+                <th>CV (%)</th><th>CAGR (%/ano)</th>
+                <th>Tendência (R$ Mil/ano)</th><th>R²</th>
             </tr></thead>
             <tbody>{rows}</tbody>
         </table>"""
 
-    # Tabela 2: Crescimento 2015-2023 (Top 10)
-    def tabela_crescimento_html():
-        rows = ""
-        for _, r in crescimento_top10.iterrows():
-            rows += f"""
-            <tr>
-                <td><b>{r['nome_municipio']}</b></td>
-                <td>R$ {r['pib_2015']:,.0f}</td>
-                <td>R$ {r['pib_2023']:,.0f}</td>
-                <td><span style="color:#16a34a;font-weight:700">{r['crescimento_pct']:.1f}%</span></td>
-            </tr>"""
-        return f"""
-        <table>
-            <thead><tr>
-                <th>Município</th><th>PIB 2015 (Mil R$)</th><th>PIB 2023 (Mil R$)</th><th>Crescimento (%)</th>
-            </tr></thead>
-            <tbody>{rows}</tbody>
-        </table>"""
-
-    # Tabela 3: Quantis
+    # Tabela de quantis (apêndice metodológico)
     def tabela_quantis_html():
         rows = ""
         for q, v in quantis.items():
@@ -702,41 +703,6 @@ def gerar_dashboard_html():
             <tbody>{rows}</tbody>
         </table>"""
 
-    # Tabela 4: CAGR completo
-    def tabela_cagr_html():
-        rows = ""
-        for mun, cagr in cagr_municipios.items():
-            color = "#16a34a" if cagr >= 0 else "#dc2626"
-            rows += f'<tr><td>{mun}</td><td style="color:{color};font-weight:600">{cagr:.1f}%</td></tr>'
-        return f"""
-        <table>
-            <thead><tr><th>Município</th><th>CAGR 2015-2023</th></tr></thead>
-            <tbody>{rows}</tbody>
-        </table>"""
-
-    # Tabela 5: Performance relativa
-    def tabela_performance_html():
-        rows = ""
-        for mun, perf in performance_municipios.items():
-            rows += f"<tr><td>{mun}</td><td>{perf:.1f}%</td></tr>"
-        return f"""
-        <table>
-            <thead><tr><th>Município</th><th>Performance (% da média estadual)</th></tr></thead>
-            <tbody>{rows}</tbody>
-        </table>"""
-
-    # Tabela 6: Tendências por regressão linear
-    def tabela_tendencias_html():
-        rows = ""
-        for _, r in tendencias.sort_values('tendencia', ascending=False).iterrows():
-            if pd.notna(r['tendencia']):
-                rows += f"<tr><td>{r['nome_municipio']}</td><td>+R$ {r['tendencia']:,.0f} mil/ano</td><td>{r['r2']:.2f}</td></tr>"
-        return f"""
-        <table>
-            <thead><tr><th>Município</th><th>Tendência (R$ Mil/ano)</th><th>R²</th></tr></thead>
-            <tbody>{rows}</tbody>
-        </table>"""
-
     # ---- Montar HTML final ----
     html_content = f"""<!DOCTYPE html>
 <html lang="pt-BR">
@@ -744,24 +710,44 @@ def gerar_dashboard_html():
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Painel do PIB Municipal — Governo do Estado do Rio de Janeiro</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
     <style>
-        *, *::before, *::after {{ margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }}
-        body {{ background-color: #f1f5f9; color: #0f172a; padding: 24px; }}
-        header {{
-            background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
-            color: white; padding: 32px 40px; border-radius: 16px;
-            margin-bottom: 24px; box-shadow: 0 10px 25px -5px rgba(15,23,42,0.2);
+        :root {{
+            --color-primary: #01579B;
+            --color-primary-hover: #004A7A;
+            --color-primary-light: #00A4EF;
+            --color-info: #0079C1;
+            --color-success: #35AC46;
+            --color-warning: #E8A904;
+            --color-error: #D32F2F;
+            --color-bg: #FFFFFF;
+            --color-bg-secondary: #F8F9FA;
+            --color-bg-hover: #EAF3FA;
+            --color-border: #D0D1D3;
+            --color-text: #323232;
+            --color-text-secondary: #545454;
+            --font-family: 'Avenir Next', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
+            --radius-sm: 2px;
+            --radius-md: 4px;
+            --radius-lg: 8px;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+            --shadow-md: 0 3px 6px rgba(0,0,0,0.15), 0 2px 4px rgba(0,0,0,0.12);
         }}
-        header h1 {{ font-size: 28px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 6px; }}
-        header p {{ font-size: 14px; color: #94a3b8; }}
+        *, *::before, *::after {{ margin: 0; padding: 0; box-sizing: border-box; font-family: var(--font-family); }}
+        body {{ background-color: var(--color-bg-secondary); color: var(--color-text); padding: 24px; }}
+        header {{
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
+            color: white; padding: 32px 40px; border-radius: var(--radius-lg);
+            margin-bottom: 24px; box-shadow: var(--shadow-md);
+        }}
+        header h1 {{ font-size: 32px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 6px; }}
+        header p {{ font-size: 14px; color: rgba(255,255,255,0.8); }}
         .section-title {{
-            font-size: 18px; font-weight: 700; color: #0f172a;
-            padding: 12px 0 8px 0; border-bottom: 2px solid #e2e8f0; margin-bottom: 16px;
+            font-size: 18px; font-weight: 600; color: var(--color-text);
+            padding: 12px 0 8px 0; border-bottom: 2px solid var(--color-border); margin-bottom: 16px;
         }}
         .section-badge {{
-            display: inline-block; background: #1e3a8a; color: white;
-            font-size: 11px; font-weight: 700; border-radius: 6px;
+            display: inline-block; background: var(--color-primary); color: white;
+            font-size: 11px; font-weight: 700; border-radius: var(--radius-sm);
             padding: 3px 10px; margin-right: 8px; vertical-align: middle;
         }}
         .kpi-grid {{
@@ -769,34 +755,58 @@ def gerar_dashboard_html():
             gap: 16px; margin-bottom: 24px;
         }}
         .kpi-card {{
-            background: white; padding: 20px; border-radius: 14px;
-            border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            background: var(--color-bg); padding: 20px; border-radius: var(--radius-md);
+            border: 1px solid var(--color-border); box-shadow: var(--shadow-sm);
         }}
-        .kpi-title {{ font-size: 12px; color: #64748b; font-weight: 600; text-transform: uppercase; margin-bottom: 8px; }}
-        .kpi-value {{ font-size: 26px; font-weight: 800; color: #0f172a; }}
-        .kpi-sub {{ font-size: 12px; font-weight: 600; margin-top: 4px; color: #16a34a; }}
-        .kpi-sub.warn {{ color: #dc2626; }}
+        .kpi-title {{ font-size: 12px; color: var(--color-text-secondary); font-weight: 600; text-transform: uppercase; margin-bottom: 8px; }}
+        .kpi-value {{ font-size: 26px; font-weight: 700; color: var(--color-text); }}
+        .kpi-sub {{ font-size: 12px; font-weight: 600; margin-top: 4px; color: var(--color-success); }}
+        .kpi-sub.warn {{ color: var(--color-error); }}
         .card {{
-            background: white; padding: 24px; border-radius: 16px;
-            border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
-            margin-bottom: 24px;
+            background: var(--color-bg); padding: 24px; border-radius: var(--radius-md);
+            border: 1px solid var(--color-border); box-shadow: var(--shadow-sm);
+            margin-bottom: 24px; transition: box-shadow 200ms ease-out;
+        }}
+        .card:hover {{ box-shadow: var(--shadow-md); }}
+        .summary-card {{
+            background: var(--color-bg); padding: 28px 32px; border-radius: var(--radius-md);
+            border: 1px solid var(--color-border); border-left: 4px solid var(--color-primary);
+            box-shadow: var(--shadow-sm); margin-bottom: 24px;
+        }}
+        .summary-card h3 {{ font-size: 20px; font-weight: 700; color: var(--color-text); margin-bottom: 14px; }}
+        .summary-card p {{ font-size: 14px; color: var(--color-text); line-height: 1.7; margin-bottom: 12px; }}
+        .summary-card p:last-child {{ margin-bottom: 0; }}
+        .analise {{ margin-top: 16px; }}
+        .analise summary {{
+            cursor: pointer; font-size: 13px; font-weight: 600; color: var(--color-primary);
+            list-style: none; outline: none; user-select: none;
+        }}
+        .analise summary::-webkit-details-marker {{ display: none; }}
+        .analise summary::before {{ content: '▸ '; }}
+        .analise[open] summary::before {{ content: '▾ '; }}
+        .analise summary:focus-visible {{ outline: 2px solid var(--color-primary); outline-offset: 2px; }}
+        .analise p {{
+            font-size: 13px; color: var(--color-text-secondary); line-height: 1.6; margin-top: 10px;
+            padding: 12px 14px; background: var(--color-bg-secondary); border-radius: var(--radius-md);
+            border-left: 3px solid var(--color-primary);
         }}
         .grid-2 {{ display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }}
         .stat-box {{
-            background: #f8fafc; border-radius: 10px; padding: 14px;
-            border: 1px solid #e2e8f0; margin-bottom: 12px;
+            background: var(--color-bg-secondary); border-radius: var(--radius-md); padding: 14px;
+            border: 1px solid var(--color-border); margin-bottom: 12px;
         }}
-        .stat-box h4 {{ font-size: 13px; color: #64748b; margin-bottom: 6px; }}
-        .stat-box p {{ font-size: 14px; color: #0f172a; font-weight: 600; }}
+        .stat-box h4 {{ font-size: 13px; color: var(--color-text-secondary); margin-bottom: 6px; }}
+        .stat-box p {{ font-size: 14px; color: var(--color-text); font-weight: 600; }}
         table {{ width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 13px; }}
-        th, td {{ padding: 10px 14px; text-align: left; border-bottom: 1px solid #e2e8f0; }}
-        th {{ background-color: #f8fafc; font-weight: 700; color: #334155; font-size: 12px; }}
-        tr:hover {{ background-color: #f1f5f9; }}
-        .img-card {{ width: 100%; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; margin-bottom: 24px; background: white; padding: 20px; }}
-        .img-card img {{ width: 100%; height: auto; border-radius: 8px; display: block; }}
-        .img-card .caption {{ font-size: 12px; color: #64748b; margin-top: 10px; text-align: center; }}
-        .scrollable {{ max-height: 420px; overflow-y: auto; border-radius: 8px; border: 1px solid #e2e8f0; }}
-        footer {{ text-align: center; padding: 24px; color: #64748b; font-size: 13px; margin-top: 32px; }}
+        th, td {{ padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--color-border); }}
+        th {{ background-color: var(--color-bg-secondary); font-weight: 700; color: var(--color-text-secondary); font-size: 12px; }}
+        tr {{ transition: background-color 200ms ease-out; }}
+        tr:hover {{ background-color: var(--color-bg-hover); }}
+        .img-card {{ width: 100%; border-radius: var(--radius-md); border: 1px solid var(--color-border); overflow: hidden; margin-bottom: 24px; background: var(--color-bg); padding: 20px; }}
+        .img-card img {{ width: 100%; height: auto; border-radius: var(--radius-sm); display: block; }}
+        .img-card .caption {{ font-size: 12px; color: var(--color-text-secondary); margin-top: 10px; text-align: center; }}
+        .scrollable {{ max-height: 420px; overflow-y: auto; border-radius: var(--radius-md); border: 1px solid var(--color-border); }}
+        footer {{ text-align: center; padding: 24px; color: var(--color-text-secondary); font-size: 13px; margin-top: 32px; }}
         @media (max-width: 900px) {{ .grid-2 {{ grid-template-columns: 1fr; }} }}
     </style>
 </head>
@@ -834,79 +844,66 @@ def gerar_dashboard_html():
         <div class="kpi-value">{cagr_municipios.mean():.1f}%/ano</div>
         <div class="kpi-sub">Taxa Média de Crescimento</div>
     </div>
-    <div class="kpi-card">
-        <div class="kpi-title">Outliers (IQR)</div>
-        <div class="kpi-value">{(len(outliers)/len(df))*100:.1f}%</div>
-        <div class="kpi-sub">Do Total de Registros</div>
-    </div>
-    <div class="kpi-card">
-        <div class="kpi-title">Assimetria (Skewness)</div>
-        <div class="kpi-value">{assimetria:.2f}</div>
-        <div class="kpi-sub">Distribuição Positiva</div>
-    </div>
-    <div class="kpi-card">
-        <div class="kpi-title">CAGR Máximo</div>
-        <div class="kpi-value">{cagr_municipios.max():.1f}%/ano</div>
-        <div class="kpi-sub">Maior Crescimento (Saquarema)</div>
-    </div>
 </div>
 
 <!-- Seção 1: Evolução Temporal -->
 <div class="card">
     <div class="section-title"><span class="section-badge">1</span>Evolução Temporal do PIB Estadual</div>
     {fig1.to_html(include_plotlyjs='cdn', full_html=False)}
+    <details class="analise">
+        <summary>Ver análise</summary>
+        <p>O PIB fluminense cresceu {crescimento_total:.1f}% entre 2015 e 2023, saltando de R$ 659,1 bi para
+        R$ {pib_2023_val:.2f} bi — mas a trajetória não foi linear. A retração de 2020 (efeito da pandemia)
+        interrompe uma sequência de crescimento moderado, seguida por recuperação acelerada a partir de 2021,
+        quando as variações anuais passam a superar dois dígitos.</p>
+    </details>
 </div>
 
-<!-- Seção 2: Ranking por PIB Médio + Crescimento 2015-2023 -->
+<!-- Seção 2: Ranking e Trajetória dos Maiores -->
 <div class="grid-2">
     <div class="card">
-        <div class="section-title"><span class="section-badge">2a</span>Top 10 Municípios por PIB Médio</div>
+        <div class="section-title"><span class="section-badge">2</span>Top 10 Municípios por PIB Médio</div>
         {fig2.to_html(include_plotlyjs=False, full_html=False)}
+        <details class="analise">
+            <summary>Ver análise</summary>
+            <p>Dez municípios concentram {pct_top10:.1f}% de todo o PIB fluminense — a capital sozinha responde
+            por {pct_rio:.1f}%. Fora do eixo metropolitano, aparecem Macaé e Campos dos Goytacazes (cadeia de
+            petróleo e gás) e Maricá e Saquarema, cujo peso é recente: resultado direto de royalties do
+            pré-sal, não de diversificação produtiva.</p>
+        </details>
     </div>
     <div class="card">
-        <div class="section-title"><span class="section-badge">2b</span>Top 10 — Maior Crescimento 2015–2023</div>
-        {tabela_crescimento_html()}
+        <div class="section-title"><span class="section-badge">2</span>Trajetória dos 5 Maiores (2015–2023)</div>
+        {fig3.to_html(include_plotlyjs=False, full_html=False)}
+        <details class="analise">
+            <summary>Ver análise</summary>
+            <p>Entre 2015 e 2023, Maricá multiplicou seu PIB por mais de 10 vezes, ultrapassando Niterói,
+            Duque de Caxias e Campos dos Goytacazes na disputa pela 2ª posição — uma inversão sem paralelo
+            entre grandes municípios brasileiros no período. A capital, mesmo estagnada em termos relativos,
+            mantém distância absoluta intransponível dos demais.</p>
+        </details>
     </div>
 </div>
 
-<!-- Seção 3: Evolução dos Top 5 Municípios -->
-<div class="card">
-    <div class="section-title"><span class="section-badge">3</span>Trajetória Temporal dos 5 Maiores Municípios</div>
-    {fig3.to_html(include_plotlyjs=False, full_html=False)}
-</div>
-
-<!-- Seção 4: Distribuição e Outliers -->
-<div class="card">
-    <div class="section-title"><span class="section-badge">4</span>Distribuição do PIB e Detecção de Outliers (Histograma + Boxplot por Ano)</div>
-    {img_tag('pib_distribuicao.png')}
-    <div class="caption">Escala logarítmica (Log10) aplicada para melhor visualização da assimetria positiva (Skewness = {assimetria:.2f})</div>
-    <div class="grid-2" style="margin-top:20px">
-        <div>
-            <div class="stat-box"><h4>Assimetria (Skewness)</h4><p>{assimetria:.2f} — Cauda longa à direita</p></div>
-            <div class="stat-box"><h4>Curtose (Kurtosis)</h4><p>{curtose:.2f} — Distribuição Leptocúrtica</p></div>
-            <div class="stat-box"><h4>Outliers (IQR)</h4><p>{len(outliers):,} registros ({(len(outliers)/len(df))*100:.2f}% do total)</p></div>
-            <div class="stat-box"><h4>Limite Superior (IQR)</h4><p>R$ {limite_superior:,.0f} mil</p></div>
-        </div>
-        <div>
-            <h4 style="font-size:13px;font-weight:700;margin-bottom:8px;color:#334155">Distribuição por Quantis (PIB em Mil R$)</h4>
-            {tabela_quantis_html()}
-        </div>
-    </div>
-</div>
-
-<!-- Seção 5: Concentração e Desigualdade -->
+<!-- Seção 3: Concentração Econômica -->
 <div class="grid-2">
     <div class="card">
-        <div class="section-title"><span class="section-badge">5a</span>Curva de Lorenz — Concentração do PIB</div>
+        <div class="section-title"><span class="section-badge">3</span>Concentração do PIB — Curva de Lorenz</div>
         {fig4.to_html(include_plotlyjs=False, full_html=False)}
+        <details class="analise">
+            <summary>Ver análise</summary>
+            <p>A curva mostra visualmente a distância entre o Rio real e um estado com distribuição
+            equilibrada de riqueza municipal: a área entre a curva de igualdade perfeita e a observada
+            corresponde a um Gini de {gini_coef:.3f} — próximo do limite teórico de concentração máxima (1,0).</p>
+        </details>
     </div>
     <div class="card">
-        <div class="section-title"><span class="section-badge">5b</span>Concentração Econômica por Município</div>
-        <div class="stat-box"><h4>Índice de Gini</h4><p style="color:#dc2626;font-size:20px;font-weight:800">{gini_coef:.3f}</p></div>
+        <div class="section-title"><span class="section-badge">3</span>Participação dos Maiores Municípios</div>
+        <div class="stat-box"><h4>Índice de Gini</h4><p style="color:#D32F2F;font-size:20px;font-weight:800">{gini_coef:.3f}</p></div>
         <div class="stat-box"><h4>Top 5 Municípios</h4><p>{pct_top5:.1f}% do PIB Estadual</p></div>
         <div class="stat-box"><h4>Top 2 Municípios</h4><p>50% do PIB Estadual (apenas 2,2% dos municípios)</p></div>
         <br>
-        <h4 style="font-size:13px;font-weight:700;margin-bottom:8px;color:#334155">Participação dos 5 Maiores Municípios</h4>
+        <h4 style="font-size:13px;font-weight:700;margin-bottom:8px;color:#545454">Participação dos 5 Maiores Municípios</h4>
         <table>
             <thead><tr><th>Município</th><th>PIB Médio (Mil R$)</th><th>Participação</th></tr></thead>
             <tbody>
@@ -918,68 +915,128 @@ def gerar_dashboard_html():
     html_content += f"""
             </tbody>
         </table>
+        <details class="analise">
+            <summary>Ver análise</summary>
+            <p>Meia dúzia de municípios, dos 92 do estado, responde por quase dois terços do PIB fluminense —
+            sustentada por dois motores muito diferentes: a economia diversificada da capital, e a renda de
+            royalties que infla o PIB de Maricá, Saquarema e Duque de Caxias sem necessariamente significar
+            diversificação equivalente.</p>
+        </details>
     </div>
 </div>
 
-<!-- Seção 6: Correlação Temporal -->
+<!-- Seção 4: Crescimento (CAGR) -->
 <div class="card">
-    <div class="section-title"><span class="section-badge">6</span>Matriz de Correlação do PIB entre Anos</div>
-    {img_tag('pib_correlacao_anos.png')}
-    <div class="caption">Correlação de Pearson entre o PIB municipal de diferentes anos — valores próximos de 1,00 indicam estrutura econômica estável.</div>
-</div>
-
-<!-- Seção 7: Tendência de Crescimento -->
-<div class="grid-2">
-    <div class="card">
-        <div class="section-title"><span class="section-badge">7a</span>Tendência Linear de Crescimento (Top 10)</div>
-        {fig6.to_html(include_plotlyjs=False, full_html=False)}
-    </div>
-    <div class="card">
-        <div class="section-title"><span class="section-badge">7b</span>Tendências por Regressão Linear — Todos os Municípios</div>
-        <div class="scrollable">
-            {tabela_tendencias_html()}
-        </div>
-    </div>
-</div>
-
-<!-- Seção 8: CAGR -->
-<div class="card">
-    <div class="section-title"><span class="section-badge">8a</span>Distribuição das Taxas de Crescimento (CAGR) — Histograma e Boxplot</div>
-    {img_tag('pib_cagr_distribuicao.png')}
-    <div class="caption">CAGR médio estadual: {cagr_municipios.mean():.1f}% ao ano &nbsp;|&nbsp; Mediana: {cagr_municipios.median():.1f}% &nbsp;|&nbsp; Melhor: {cagr_municipios.max():.1f}% (Saquarema) &nbsp;|&nbsp; Pior: {cagr_municipios.min():.1f}% (Mangaratiba)</div>
-</div>
-<div class="grid-2">
-    <div class="card">
-        <div class="section-title"><span class="section-badge">8b</span>CAGR — Maiores e Menores Crescimentos</div>
+    <div class="section-title"><span class="section-badge">4</span>Crescimento Municipal — Taxa Anual Composta (CAGR)</div>
+    {fig7.to_html(include_plotlyjs=False, full_html=False)}
+    <div class="caption">CAGR médio estadual: {cagr_municipios.mean():.1f}% ao ano &nbsp;|&nbsp; Mediana: {cagr_municipios.median():.1f}% &nbsp;|&nbsp; Melhor: {cagr_municipios.max():.1f}% ({cagr_municipios.idxmax()}) &nbsp;|&nbsp; Pior: {cagr_municipios.min():.1f}% ({cagr_municipios.idxmin()})</div>
+    <div style="margin-top:24px">
         {fig5.to_html(include_plotlyjs=False, full_html=False)}
     </div>
-    <div class="card">
-        <div class="section-title"><span class="section-badge">8c</span>CAGR — Todos os Municípios</div>
-        <div class="scrollable">
-            {tabela_cagr_html()}
+    <details class="analise">
+        <summary>Ver análise</summary>
+        <p>O crescimento é desigual mesmo entre os menores: {cagr_municipios.idxmax()} cresceu
+        {cagr_municipios.max():.1f}% ao ano, a maior taxa do estado, enquanto {cagr_municipios.idxmin()} foi o
+        único município com CAGR negativo ({cagr_municipios.min():.1f}%). A mediana de
+        {cagr_municipios.median():.1f}% ao ano mostra que a maioria cresce moderadamente — os casos de
+        disparada são exceção, puxados por royalties, não a norma estadual.</p>
+    </details>
+</div>
+
+<!-- Seção 5: Tabela Mestra -->
+<div class="card">
+    <div class="section-title"><span class="section-badge">5</span>Todos os Municípios — Estatísticas, Crescimento e Tendência</div>
+    <div class="scrollable">
+        {tabela_mestra_municipios_html()}
+    </div>
+    <div class="caption">CAGR = taxa de crescimento anual composta 2015–2023. Tendência = inclinação da regressão linear do PIB contra o ano; R² indica o quanto a trajetória se ajusta a uma reta.</div>
+    <details class="analise">
+        <summary>Ver análise</summary>
+        <p>R² alto na coluna de tendência indica trajetória de crescimento consistente e previsível; R² baixo
+        indica oscilação ano a ano, mais sensível a eventos pontuais como royalties variáveis ou grandes obras.
+        Cruzar CAGR com CV (coeficiente de variação) ajuda a distinguir crescimento "sólido" de crescimento
+        "instável".</p>
+    </details>
+</div>
+
+<!-- Apêndice Metodológico -->
+<div style="margin:48px 0 20px 0;padding-bottom:12px;border-bottom:2px solid var(--color-border)">
+    <div style="font-size:18px;font-weight:600;color:var(--color-text)">Apêndice Metodológico</div>
+    <div style="font-size:13px;color:var(--color-text-secondary);margin-top:4px">
+        Distribuição estatística dos dados e notas sobre a estrutura da série — material de apoio à leitura das seções anteriores.
+    </div>
+</div>
+
+<!-- A1: Distribuição e Outliers -->
+<div class="card">
+    <div class="section-title"><span class="section-badge">A1</span>Distribuição do PIB e Detecção de Outliers</div>
+    {fig6.to_html(include_plotlyjs=False, full_html=False)}
+    <div class="caption">Escala logarítmica (Log10) aplicada para melhor visualização da assimetria positiva (Skewness = {assimetria:.2f})</div>
+    <div class="grid-2" style="margin-top:20px">
+        <div>
+            <div class="stat-box"><h4>Assimetria (Skewness)</h4><p>{assimetria:.2f} — Cauda longa à direita</p></div>
+            <div class="stat-box"><h4>Curtose (Kurtosis)</h4><p>{curtose:.2f} — Distribuição Leptocúrtica</p></div>
+            <div class="stat-box"><h4>Outliers (IQR)</h4><p>{len(outliers):,} registros ({(len(outliers)/len(df))*100:.2f}% do total)</p></div>
+            <div class="stat-box"><h4>Limite Superior (IQR)</h4><p>R$ {limite_superior:,.0f} mil</p></div>
+        </div>
+        <div>
+            <h4 style="font-size:13px;font-weight:700;margin-bottom:8px;color:#545454">Distribuição por Quantis (PIB em Mil R$)</h4>
+            {tabela_quantis_html()}
         </div>
     </div>
+    <details class="analise">
+        <summary>Ver análise</summary>
+        <p>A distribuição é fortemente assimétrica (Skewness = {assimetria:.2f}): a maioria dos municípios tem
+        PIB modesto (mediana bem abaixo da média), enquanto uma minoria de grandes polos urbanos e petrolíferos
+        puxa a média para cima. Os {(len(outliers)/len(df))*100:.1f}% de outliers pelo critério IQR não são
+        erro de dado — são, em grande parte, a assinatura estatística da própria concentração econômica do
+        estado.</p>
+    </details>
 </div>
 
-<!-- Seção 9: Performance Relativa -->
+<!-- A2: Estabilidade Estrutural -->
 <div class="card">
-    <div class="section-title"><span class="section-badge">9</span>Performance Relativa dos 30 Maiores Municípios (% da Média Estadual por Ano)</div>
-    {img_tag('pib_heatmap_performance.png')}
-    <div class="caption">Valores &gt; 100% indicam PIB acima da média estadual. Valores &lt; 100% indicam abaixo da média.</div>
-</div>
-<div class="card">
-    <div class="section-title"><span class="section-badge">9b</span>Performance Relativa — Todos os Municípios (média 2015–2023)</div>
-    <div class="scrollable">
-        {tabela_performance_html()}
+    <div class="section-title"><span class="section-badge">A2</span>Estabilidade Estrutural da Série</div>
+    <p style="font-size:14px;color:var(--color-text-secondary);line-height:1.6;margin-bottom:16px">
+        A correlação de Pearson entre o PIB municipal de anos diferentes é <b>uniformemente alta</b>
+        (média de {corr_vals.mean():.3f}, variando entre {corr_vals.min():.3f} e {corr_vals.max():.3f} ao longo dos
+        {len(correlacao_anos)} anos analisados). Isso significa que a hierarquia econômica entre os municípios
+        fluminenses é estável: quem era grande em 2015 continuou grande em 2023, e as mudanças de posição
+        — como a ascensão de Maricá e Saquarema — são exceções, não o padrão.
+    </p>
+    <div class="grid-2">
+        <div class="stat-box"><h4>Correlação Média entre Anos</h4><p>{corr_vals.mean():.3f}</p></div>
+        <div class="stat-box"><h4>Faixa Observada</h4><p>{corr_vals.min():.3f} — {corr_vals.max():.3f}</p></div>
     </div>
 </div>
 
-<!-- Seção 10: Tabela Completa de Estatísticas -->
-<div class="card">
-    <div class="section-title"><span class="section-badge">10</span>Estatísticas Descritivas Completas por Município</div>
-    <div class="scrollable">
-        {tabela_stats_municipios_html()}
-    </div>
+<!-- Panorama Geral: síntese final -->
+<div class="summary-card">
+    <h3>Panorama Geral: o que os números dizem sobre o Rio de Janeiro</h3>
+    <p>
+        O PIB fluminense cresceu {crescimento_total:.1f}% entre 2015 e 2023, alcançando R$ {pib_2023_val:.2f} bilhões —
+        mas esse crescimento não distribuiu riqueza entre os municípios. O estado segue entre os mais
+        concentrados do país nesta métrica: o Índice de Gini municipal é de {gini_coef:.3f} e apenas 5 dos 92
+        municípios respondem por {pct_top5:.1f}% do PIB estadual, com a capital sozinha
+        concentrando cerca de 42% de tudo o que é produzido no estado.
+    </p>
+    <p>
+        A trajetória recente é marcada por dois fenômenos distintos. O primeiro é a recuperação pós-pandemia,
+        especialmente forte a partir de 2021, que devolveu ao estado um ritmo de crescimento que não se via desde
+        o início da série. O segundo é a ascensão atípica de municípios receptores de royalties de petróleo —
+        {cagr_municipios.idxmax()} à frente, com CAGR de {cagr_municipios.max():.1f}% ao ano —
+        cujo crescimento de dois dígitos reflete concentração de renda extraordinária, não diversificação
+        econômica ampla. No extremo oposto, {cagr_municipios.idxmin()} foi o único município a registrar
+        contração no período ({cagr_municipios.min():.1f}% ao ano).
+    </p>
+    <p>
+        Apesar dessas mudanças pontuais, a estrutura econômica de fundo permanece estável: a correlação média do
+        PIB municipal entre anos diferentes é de {corr_vals.mean():.3f}, ou seja, a hierarquia entre municípios
+        grandes e pequenos muda pouco de um ano para o outro. Para quem acompanha política pública, o retrato que
+        os dados formam é claro: o Rio de Janeiro cresce, mas cresce de forma desigual e dependente de rendas
+        pontuais — o desafio que os números aqui deixam evidente, mas não respondem, é como transformar esse
+        crescimento concentrado em desenvolvimento distribuído entre os 92 municípios fluminenses.
+    </p>
 </div>
 
 <footer>

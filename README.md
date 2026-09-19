@@ -1,6 +1,6 @@
 # 🌍 Data Pipeline & Analytics: PIB dos Municípios do Estado do Rio de Janeiro (IBGE)
 
-> **Status:** 🟢 Produção / Pipeline Operacional (Versão v1.0.0)  
+> **Status:** 🟢 Produção / Pipeline Operacional (Versão v1.0.0)
 > **Arquitetura:** Ingestão Automatizada de API Pública ➔ Modelagem Relacional & DDL ➔ Views Analíticas em PostgreSQL ➔ Estatística Descritiva & Spatial Analytics ➔ Relatórios e Dashboards Executivos.
 
 ---
@@ -24,7 +24,7 @@ O pipeline foi projetado seguindo o princípio da **Separação de Responsabilid
                              ▼  HTTP GET (Requests)
                  [ scripts/etl_pib_ibge.py ]
                              │
-                             ▼  Normalização Tidy & Validação
+                             ▼  Normalização, Limpeza & Validação
           ┌──────────────────┴──────────────────┐
           │                                     │
           ▼ DDL & Views                         ▼ Truncate & Append
@@ -47,13 +47,14 @@ O pipeline foi projetado seguindo o princípio da **Separação de Responsabilid
 ```
 
 ### Componentes da Arquitetura:
+
 1. **Orquestrador Central (`main.py`):** Ponto de entrada unificado que executa sequencialmente o pipeline com monitoramento de tempo, logs formatados e tratamento de exceções.
 2. **Camada de Ingestão (`scripts/etl_pib_ibge.py`):** Consome os dados da API pública, normaliza arrays aninhados em formato relacional e aplica os scripts SQL de schema e views antes de realizar a carga.
 3. **Camada de Banco de Dados Declarativo (`sql/`):**
    - `01_schema.sql`: DDL declarativo com chave primária composta `(id_municipio, ano)`, tipos estritos e índices `B-Tree`.
    - `02_views_analytics.sql`: Views com **Window Functions** (`LAG()`, `DENSE_RANK()`, `SUM() OVER`) para cálculo de taxas e rankings diretamente no motor do PostgreSQL.
    - `03_queries_relatorio.sql`: Consultas de auditoria de qualidade de dados (*Data Quality*) e rankings prontas para consumo por ferramentas de BI.
-4. **Camada Analítica & Visualização (`scripts/analytics.py`):** Cálculos de dispersão, regressão linear, Gini, assimetria, geração de figuras estáticas de alta qualidade, dashboard HTML responsivo e relatório PDF formal.
+4. **Camada Analítica & Visualização (`scripts/analytics.py`):** Cálculos de dispersão, regressão linear, Gini, assimetria, geração de figuras estáticas de alta qualidade, dashboard HTML interativo (identidade visual baseada no Calcite Design System da Esri/ArcGIS, com textos analíticos expansíveis por gráfico e uma síntese final do panorama estadual) e relatório PDF formal.
 
 ---
 
@@ -99,11 +100,13 @@ data-pipeline-ibge/
 ## 🚀 Como Executar o Pipeline Localmente
 
 ### Pré-requisitos
+
 - **Python 3.11+** (testado e homologado no Python 3.12/3.14)
 - **PostgreSQL 14+** em execução local ou via container
 - **Git**
 
 ### 1. Clonar o Repositório e Configurar o Ambiente Virtual
+
 ```bash
 git clone https://github.com/phmcasimiro/data-pipeline-ibge.git
 cd data-pipeline-ibge
@@ -122,11 +125,15 @@ pip install -r requirements.txt
 ```
 
 ### 2. Configurar Variáveis de Ambiente (`.env`)
+
 Copie o modelo `.env.example` para criar o seu arquivo `.env` local:
+
 ```bash
 cp .env.example .env
 ```
+
 Abra o `.env` e preencha com as credenciais do seu banco PostgreSQL:
+
 ```env
 DB_HOST=localhost
 DB_PORT=5433
@@ -137,10 +144,13 @@ DB_PASSWORD=sua_senha_aqui
 ```
 
 ### 3. Executar o Pipeline Completo (Orquestrador)
+
 Com um único comando, o orquestrador executa a extração, aplica os schemas SQL, carrega o banco e gera todos os artefatos visuais:
+
 ```bash
 python main.py
 ```
+
 *Tempo médio de execução: ~25 a 30 segundos.*
 
 ---
@@ -150,18 +160,22 @@ python main.py
 Siga os passos abaixo para auditar se o ambiente e os dados estão corretos:
 
 ### Passo 1: Verificar se as Bibliotecas Python estão Prontas
+
 ```powershell
 python -c "import pandas, numpy, scipy, plotly, fpdf, sqlalchemy, psycopg2; print('-> OK: Todas as dependências prontas!')"
 ```
 
 ### Passo 2: Validar a Conexão com o PostgreSQL e Contagem de Linhas
+
 ```powershell
 python -c "import os, dotenv, sqlalchemy; dotenv.load_dotenv(); u = os.getenv('DB_USER', 'postgres'); p = os.getenv('DB_PASSWORD', ''); h = os.getenv('DB_HOST', 'localhost'); port = os.getenv('DB_PORT', '5433'); db = os.getenv('DB_NAME', 'gisdb'); e = sqlalchemy.create_engine(f'postgresql+psycopg2://{u}:{p}@{h}:{port}/{db}'); c = e.connect(); r = c.execute(sqlalchemy.text('SELECT count(*) FROM geoanalytics.ibge_pib_municipios_raw')).scalar(); print(f'-> OK: Banco conectado! Total de registros gravados: {r}'); c.close()"
 ```
+
 - **Esperado:** `-> OK: Banco conectado! Total de registros gravados: 828` (92 municípios fluminenses x 9 anos históricos).
 
 ### Passo 3: Conferência Visual dos Produtos Finais
-- **Dashboard Interativo:** Abra [`reports/dashboard_pib_rj.html`](reports/dashboard_pib_rj.html) no navegador para explorar gráficos interativos em tela cheia, variação anual e rankings.
+
+- **Dashboard Interativo:** Abra [`reports/dashboard_pib_rj.html`](reports/dashboard_pib_rj.html) no navegador para explorar gráficos interativos, rankings e a tabela completa dos 92 municípios. Cada gráfico traz um painel expansível ("Ver análise") com a leitura do dado, e o dashboard fecha com uma síntese ("Panorama Geral") do cenário econômico estadual.
 - **Relatório Executivo:** Abra [`reports/relatorio_pib_rj.pdf`](reports/relatorio_pib_rj.pdf) para visualizar o documento formal formatado com sumário e tabelas.
 - **Figuras Analíticas:** Acesse a pasta [`img/`](img/) para inspecionar os 7 gráficos salvos a 300 DPI.
 
@@ -171,13 +185,14 @@ python -c "import os, dotenv, sqlalchemy; dotenv.load_dotenv(); u = os.getenv('D
 
 1. **Hiperconcentração Econômica na Capital:** A Cidade do Rio de Janeiro responde por mais de **42% do PIB estadual acumulado** e mais de **35% em 2023**, atuando como polo centralizador de serviços e capital financeiro.
 2. **Alta Desigualdade Territorial (Índice de Gini = 0,821):** O Coeficiente de Gini próximo de 1 atesta extrema concentração da riqueza em poucos municípios litorâneos e da Região Metropolitana, contrastando com vazios econômicos no interior fluminense.
-3. **Impacto dos Royalties de Petróleo (Bacia de Campos e Pré-Sal):** Municípios como **Saquarema (+3.032%)**, **Maricá (+1.300%)** e **Arraial do Cabo (+1.064%)** registraram as maiores taxas de crescimento de todo o período, alavancados pela partilha da renda petrolífera.
+3. **Impacto dos Royalties de Petróleo (Bacia de Campos e Pré-Sal):** Municípios como **Saquarema (CAGR de 53,8% a.a.)**, **Maricá (39,1% a.a.)** e **Arraial do Cabo (35,9% a.a.)** registraram as maiores taxas de crescimento anual composto do período, alavancados pela partilha da renda petrolífera — CAGR médio estadual: 7,8% a.a.
 
 ---
 
 ## 👨‍💻 Autor
 
-**Pedro Casimiro**  
-*Geógrafo | Analista e Desenvolvedor de Sistemas | Pós-Graduado em Inteligência Artificial*  
-- **LinkedIn:** [linkedin.com/in/phmcasimiro](https://linkedin.com/in/phmcasimiro)  
-- **GitHub:** [github.com/phmcasimiro](https://github.com/phmcasimiro)  
+**Pedro Casimiro**
+*Geógrafo | Analista e Desenvolvedor de Sistemas | Pós-Graduado em Inteligência Artificial*
+
+- **LinkedIn:** [linkedin.com/in/phmcasimiro](https://linkedin.com/in/phmcasimiro)
+- **GitHub:** [https://github.com/phmcasimiro/data-pipeline-ibge](https://github.com/phmcasimiro/data-pipeline-ibge)

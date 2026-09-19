@@ -1,11 +1,11 @@
 -- =============================================================================
--- SCRIPT DE CONSULTAS ANALITICAS & AUDITORIA DE QUALIDADE (DATA QUALITY)
+-- SCRIPT DE CONSULTAS ANALÍTICAS & AUDITORIA DE QUALIDADE (DATA QUALITY)
 -- Projeto: Pipeline PIB Municipal (IBGE - RJ)
 -- Banco de Dados: PostgreSQL
 -- =============================================================================
 
 -- -----------------------------------------------------------------------------
--- 1. Validacao de Integridade e Completude (Data Quality Check)
+-- 1. Validação de Integridade e Completude (Data Quality Check)
 -- Deve retornar exatamente 92 municipios e 828 registros totais (9 anos por municipio)
 -- -----------------------------------------------------------------------------
 SELECT 
@@ -18,7 +18,7 @@ SELECT
 FROM geoanalytics.ibge_pib_municipios_raw;
 
 -- -----------------------------------------------------------------------------
--- 2. Top 10 Municipios com Maior PIB Medio Historico (2015-2023)
+-- 2. Top 10 Municípios com Maior PIB Médio Histórico (2015-2023)
 -- -----------------------------------------------------------------------------
 SELECT 
     ranking_medio,
@@ -43,7 +43,7 @@ WHERE ranking_medio <= 10
 ORDER BY ranking_medio;
 
 -- -----------------------------------------------------------------------------
--- 3. Top 10 Municipios com Maior Salto Percentual de Crescimento (2015 a 2023)
+-- 3. Top 10 Municípios com Maior Salto Percentual de Crescimento (2015 a 2023)
 -- Evidencia o impacto de royalties de petroleo em municipios da Regiao dos Lagos e Norte Fluminense
 -- -----------------------------------------------------------------------------
 SELECT 
@@ -57,7 +57,7 @@ ORDER BY crescimento_acumulado_periodo_pct DESC
 LIMIT 10;
 
 -- -----------------------------------------------------------------------------
--- 4. Concentracao Economica: Participacao do Top 5 Municipios no PIB Estadual em 2023
+-- 4. Concentração Econômica: Participação do Top 5 Municípios no PIB Estadual em 2023
 -- -----------------------------------------------------------------------------
 WITH top5_2023 AS (
     SELECT 

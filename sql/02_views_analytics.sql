@@ -5,7 +5,7 @@
 -- =============================================================================
 
 -- -----------------------------------------------------------------------------
--- View 1: Variacao e Crescimento Anual por Municipio (Uso de LAG Window Function)
+-- View 1: Variação e Crescimento Anual por Município (Uso de LAG Window Function)
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE VIEW geoanalytics.vw_pib_crescimento_anual AS
 WITH pib_lagged AS (
@@ -37,7 +37,7 @@ SELECT
 FROM pib_lagged;
 
 -- -----------------------------------------------------------------------------
--- View 2: Ranking Anual e Concentracao Estadual (DENSE_RANK e SUM OVER)
+-- View 2: Ranking Anual e Concentração Estadual (DENSE_RANK e SUM OVER)
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE VIEW geoanalytics.vw_ranking_pib_estadual AS
 WITH totais_estaduais AS (
@@ -68,7 +68,7 @@ SELECT
 FROM totais_estaduais;
 
 -- -----------------------------------------------------------------------------
--- View 3: Resumo Estatistico Historico por Municipio (2015-2023)
+-- View 3: Resumo Estatístico Histórico por Municipio (2015-2023)
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE VIEW geoanalytics.vw_resumo_historico_municipios AS
 SELECT 
